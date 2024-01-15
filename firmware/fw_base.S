@@ -46,6 +46,16 @@
 	.globl _start
 	.globl _start_warm
 _start:
+	j	1f
+	/* TT: Place debug_descriptor pointer at a fixed address */
+	.align 7  # Align to 128-byte boundary (0x80)
+	.dword debug_descriptor - _start + FW_TEXT_START
+	/* TT: The zebu snapshot restore code needs 4K * 8 cores space here  */
+	/* each NOP is 2 bytes */
+	.rept 8 * (4096/2)
+	nop
+	.endr
+1:
 	/* Find preferred boot HART id */
 	MOV_3R	s0, a0, s1, a1, s2, a2
 	call	fw_boot_hart
