@@ -11,6 +11,7 @@
 #include <platform_override.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/sbi_bitops.h>
+#include <sbi/sbi_console.h>
 #include <sbi/sbi_hartmask.h>
 #include <sbi/sbi_heap.h>
 #include <sbi/sbi_platform.h>
@@ -28,6 +29,7 @@
 #include <sbi_utils/ipi/fdt_ipi.h>
 #include <sbi_utils/reset/fdt_reset.h>
 #include <sbi_utils/serial/semihosting.h>
+#include <sbi_utils/serial/virtual-uart.h>
 
 /* List of platform override modules generated at compile time */
 extern const struct platform_override *platform_override_modules[];
@@ -380,10 +382,18 @@ static uint64_t generic_pmu_xlate_to_mhpmevent(uint32_t event_idx,
 
 static int generic_console_init(void)
 {
+	int rc = 0;
+
 	if (semihosting_enabled())
-		return semihosting_init();
+		rc = semihosting_init();
 	else
-		return fdt_serial_init();
+		rc = fdt_serial_init();
+
+	if (rc == SBI_ENODEV)
+		rc = virtual_uart_init();
+
+	return rc;
+
 }
 
 const struct sbi_platform_operations platform_ops = {
