@@ -133,7 +133,13 @@ _bss_zero:
 	/* Override previous arg1 */
 	lla	a1, fw_fdt_bin
 #endif
-
+#ifdef FW_JUMP_FDT_ADDR
+	li	a1, FW_JUMP_FDT_ADDR
+#elif defined(FW_JUMP_FDT_OFFSET)
+	lla	s5, _fw_start
+	li	a1, FW_JUMP_FDT_OFFSET
+	add	a1, s5, a1
+#endif
 	/*
 	 * Initialize platform
 	 * Note: The a0 to a4 registers passed to the
