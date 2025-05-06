@@ -1,0 +1,54 @@
+name: Tenstorrent Blackhole OpenSBI build
+
+on:
+  push:
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+    branches: [ tt-blackhole ]
+
+env:
+  NUM_JOBS: 6
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: riscv
+
+    steps:
+    - name: Update install
+      run:
+        sudo apt-get update
+
+    - name: Install toolchain
+      run:
+        sudo apt-get install gcc-riscv64-linux-gnu
+      timeout-minutes: 5
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        clean: true
+
+    - name: Build OpenSBI ${{matrix.name}}
+      run: |
+        mkdir ${{github.workspace}}/build
+        export ARCH=riscv
+        export CROSS_COMPILE=riscv64-linux-gnu-
+        export IMAGE=Image
+        make O=${{github.workspace}}/build -j ${{env.NUM_JOBS}} FW_PIC=y FW_JUMP=y FW_JUMP_OFFSET=0x200000 FW_JUMP_FDT_OFFSET=0x100000 PLATFORM=generic
+        mkdir -p ${{github.workspace}}/install
+        cp ${{github.workspace}}/build/platform/generic/firmware/*.bin ${{github.workspace}}/install/
+
+    - name: Tar build
+      run: tar -cvf ${{matrix.name}}_build.tar -C ${{github.workspace}}/install .
+
+    - name: Upload results
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{matrix.name}}_build
+        path: ${{matrix.name}}_build.tar
+        retention-days: 90
